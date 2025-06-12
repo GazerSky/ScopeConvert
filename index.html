@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Celestial Coordinate Converter</title>
+  <style>
+    body { font-family: 'Times New Roman',Arial; padding: 20px; }
+  .form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.form-row label {
+  width: 125px;
+}
+.form-row label:nth-of-type(1) {
+  margin-right: -45px; 
+}
+.form-row label:nth-of-type(2) {
+  margin-left: 20px; 
+}
+.form-row label:nth-of-type(2) {
+  margin-right: -45px; 
+}
+.form-row label:nth-of-type(3) {
+  margin-left: 20px;
+}
+.form-row label:nth-of-type(3) {
+  margin-right: -45px;
+}
+
+
+  </style>
+</head>
+<body>
+ <h1>Celestial Coordinate Converter</h1> 
+
+ <h2>Star Coordinates</h2>
+ <h3>Right Ascension</h3>
+<div class="form-row">
+  <label for="ra1">Hours:</label>
+  <input id="ra1" type="number" step="any">
+  <label for="ra2">Minutes:</label>
+  <input id="ra2"type="number" step="any">
+  <label for="ra3">Seconds:</label>
+  <input id="ra3" type="number">
+</div>
+<h3>Declination</h3>
+<div class="form-row">  
+  <label for="dec1">Degrees:</label>
+  <input id="dec1" type="number" step="any">
+  <label for="dec2">Arcminutes:</label>
+  <input id="dec2" type="number" step="any">
+  <label for="dec3">Arcseconds:</label>
+  <input id="dec3" type="number" step="any"> 
+</div>
+<h2>Observer Coordinates</h2>
+<div class="form-row">
+  <label for="lat">Latitude:</label>
+  <input id="lat" type="number" step="any">
+</div>
+<div class="form-row">
+  <label for="longitude">Longitude:</label>
+  <input id="longitude" type="number" step="any">
+</div>
+  
+<button onclick="convertCoordinates()">Convert</button>
+
+<h2>Results</h2>
+<p id="results"></p>
+
+ <script>
+    function getLocalSiderealTime(longitude) {
+      const now = new Date();
+      const year = now.getUTCFullYear();
+      const month = now.getUTCMonth() + 1;
+      const day = now.getUTCDate();
+      const hour = now.getUTCHours();
+      const minute = now.getUTCMinutes();
+      const second = now.getUTCSeconds();
+
+      let Y = month <= 2 ? year - 1 : year;
+      let M = month <= 2 ? month + 12 : month;
+
+      const A = Math.floor(Y / 100);
+      const B = 2 - A + Math.floor(A / 4);
+
+      const JD = Math.floor(365.25 * (Y + 4716)) +
+        Math.floor(30.6001 * (M + 1)) +
+        day + B - 1524.5 +
+        (hour + minute / 60 + second / 3600) / 24;
+
+      const D = JD - 2451545.0;
+
+      let GMST = 280.46061837 + 360.98564736629 * D;
+      GMST = GMST % 360;
+      if (GMST < 0) GMST += 360;
+
+      let LST = GMST + longitude;
+      LST = LST % 360;
+      if (LST < 0) LST += 360;
+
+      return LST * Math.PI / 180; // return in radians
+    }
+
+    function convertCoordinates() {
+     
+      const ra1 = parseFloat(document.getElementById('ra1').value);
+      const ra2 = parseFloat(document.getElementById('ra2').value);
+      const ra3 = parseFloat(document.getElementById('ra3').value);
+      const dec1 = parseFloat(document.getElementById('dec1').value);
+      const dec2 = parseFloat(document.getElementById('dec2').value);
+      const dec3 = parseFloat(document.getElementById('dec3').value);
+      const ra = ra1 + ra2/60 + ra3/3600
+      const decSign = Math.sign(dec1) || 1; 
+      const dec = dec1 + decSign * (Math.abs(dec2) / 60 + Math.abs(dec3) / 3600);
+      const lat =  parseFloat(document.getElementById('lat').value);
+      const lon = parseFloat(document.getElementById('longitude').value);
+      
+      const lst = getLocalSiderealTime(lon); // in radians
+      const h = lst - (ra * 15 * Math.PI / 180); // hour angle in radians
+
+      const alt = Math.asin(
+        Math.sin(dec * Math.PI / 180) * Math.sin(lat * Math.PI / 180) +
+        Math.cos(dec * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.cos(h)
+      );
+
+      const az = Math.atan2(
+        -Math.sin(h),
+        Math.tan(dec * Math.PI / 180) * Math.cos(lat * Math.PI / 180) - Math.sin(lat * Math.PI / 180) * Math.cos(h)
+      );
+
+      const altDeg = alt * 180 / Math.PI;
+      let azDeg = az * 180 / Math.PI;
+      if (azDeg < 0) azDeg += 360;
+
+      document.getElementById('results').innerText =
+        `Altitude: ${altDeg.toFixed(2)}°, Azimuth: ${azDeg.toFixed(2)}°`;
+    }
+  </script>
+</body>
+</html>
